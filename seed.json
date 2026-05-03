@@ -1,0 +1,59 @@
+{
+  "items": [
+    {
+      "category": "personal",
+      "content": "Sidharth Singh is a 24-year-old Full Stack Engineer based in Delhi, India. He completed his B.Tech in Computer Science & Engineering (Bioinformatics) from VIT Vellore in June 2024 with a CGPA of 8.22.",
+      "metadata": { "tags": ["personal", "education"] }
+    },
+    {
+      "category": "experience",
+      "content": "Sidharth currently works as a Software Engineer at 1buy.ai (Sharpbuy Global Solutions) in Okhla, Delhi since March 2026. He builds full-stack features for an AI-powered B2B Electronics Procurement Intelligence platform using TypeScript, Next.js, NestJS, and Rust.",
+      "metadata": { "tags": ["work", "current"] }
+    },
+    {
+      "category": "experience",
+      "content": "Sidharth previously worked as an Associate Software Engineer at RapidShyp (Om Logistics Ltd.) in Gurugram from July 2024 to February 2026. He designed B2B Bulk Order flows, built React/Next.js frontends, and developed high-performance Rust microservices.",
+      "metadata": { "tags": ["work", "previous"] }
+    },
+    {
+      "category": "skills",
+      "content": "Sidharth's technical skills include TypeScript, JavaScript, Rust, Java, Python, and SQL as programming languages. For frontend he uses React.js and Next.js. For backend he uses NestJS, Actix Web (Rust), and Spring Boot.",
+      "metadata": { "tags": ["skills", "languages", "frameworks"] }
+    },
+    {
+      "category": "skills",
+      "content": "Sidharth has experience with databases including MongoDB, MySQL, PostgreSQL, ElasticSearch, and LanceDB for vector storage. He understands RAG pipelines, LLM API integrations, vector embeddings, and semantic search.",
+      "metadata": { "tags": ["skills", "databases", "ai"] }
+    },
+    {
+      "category": "skills",
+      "content": "Sidharth has infrastructure and cloud skills including AWS (EC2, S3, Lambda), Docker, Kubernetes, Apache Kafka, CI/CD pipelines, and Linux. He has strong distributed systems knowledge from production work.",
+      "metadata": { "tags": ["skills", "infra", "cloud"] }
+    },
+    {
+      "category": "achievements",
+      "content": "At RapidShyp hackathon 2025, Sidharth won 1st place among all engineering teams. He also received the Customer Obsession Award in May 2025.",
+      "metadata": { "tags": ["achievements", "awards"] }
+    },
+    {
+      "category": "projects",
+      "content": "Sidharth built a D-MPNN Drug Property Predictor using Python and ensemble learning for ADME property prediction, achieving R2 of 0.9607 on 12,859 molecular SMILES entries.",
+      "metadata": { "tags": ["projects", "ml"] }
+    },
+    {
+      "category": "projects",
+      "content": "Sidharth is building a distributed Go scheduler — a price alert system with MongoDB-backed atomic claiming to prevent duplicate processing across multiple instances using goroutines and worker pools.",
+      "metadata": { "tags": ["projects", "go", "distributed"] }
+    },
+    {
+      "category": "personality",
+      "content": "Sidharth enjoys hard engineering problems that take weeks to solve. He loves exploring new tech stacks and tools, and is currently learning Go. He has a deep 'how it works' mental model approach to learning rather than surface-level tool usage.",
+      "metadata": { "tags": ["personality", "interests"] }
+    },
+    {
+      "category": "personality",
+      "content": "Sidharth's long-term career targets are intermediate engineer level within 1 to 1.5 years and senior engineer level within 2 to 3 years. He is focused on building strong engineering fundamentals alongside AI-assisted development.",
+      "metadata": { "tags": ["goals", "career"] }
+    }
+  ]
+}
