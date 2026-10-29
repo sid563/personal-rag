@@ -23,3 +23,7 @@ Sidharth Singh holds two VMware IT Academy certifications from 2023: Modern Appl
 ## Where to find Sidharth's documents
 
 All of Sidharth Singh's supporting documents are linked from his site. The original resume PDF is at https://sidharthsingh.dev/cv, and a generated PDF can be downloaded from https://sidharthsingh.dev/resume. The B.Tech degree certificate, the RapidShyp hackathon first-place certificate, the Customer Obsession Award, the Google Cloud Computing Foundations certificate and both VMware IT Academy certificates each have a stable path under https://sidharthsingh.dev/certificates/ or https://sidharthsingh.dev/documents/ that redirects to the file.
+
+## Sidharth's schooling before university
+
+Before VIT, Sidharth Singh studied under the Uttar Pradesh Board (UP Board). He completed High School (Class 10) in the Science stream with Mathematics, scoring 97 out of 100 in Mathematics in the board examination. He then completed Intermediate (Class 12) in the Physics, Chemistry and Mathematics stream, scoring 90 in Physics, 90 in Chemistry and 88 in Mathematics in the board examination. That mathematics-heavy schooling led to his B.Tech in Computer Science at Vellore Institute of Technology, where he graduated in June 2024.

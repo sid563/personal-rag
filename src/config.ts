@@ -39,8 +39,8 @@ export function getConfig() {
     },
     rag: {
       topK: num(process.env.RAG_TOP_K, 6),
-      /** Atlas cosine scores are (1 + cos) / 2, so 0.5 is unrelated and 1 is identical. */
-      minScore: Number(process.env.RAG_MIN_SCORE ?? 0.72),
+      /** Atlas cosine scores are (1 + cos) / 2. Measured 29 Oct 2026: on-topic top hits 0.86 to 0.92, off-topic 0.70 to 0.78. */
+      minScore: Number(process.env.RAG_MIN_SCORE ?? 0.78),
       maxAnswerTokens: num(process.env.RAG_MAX_TOKENS, 600),
     },
     limits: {

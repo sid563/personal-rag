@@ -44,6 +44,11 @@ export class LlmService {
     return out;
   }
 
+  private fail(errors: string[], detail: string) {
+    errors.push(detail);
+    this.log.warn(`LLM provider failed, trying next: ${detail}`);
+  }
+
   private request(p: Provider, messages: ChatMessage[], maxTokens: number, stream: boolean) {
     return fetch(p.url, {
       method: 'POST',
@@ -60,18 +65,18 @@ export class LlmService {
       try {
         const res = await this.request(p, messages, maxTokens, false);
         if (!res.ok) {
-          errors.push(`${p.name} ${res.status}: ${(await res.text().catch(() => '')).slice(0, 200)}`);
+          this.fail(errors, `${p.name} ${res.status}: ${(await res.text().catch(() => '')).slice(0, 200)}`);
           continue;
         }
         const json: any = await res.json();
         const text = String(json?.choices?.[0]?.message?.content ?? '').trim();
         if (!text) {
-          errors.push(`${p.name}: empty answer`);
+          this.fail(errors, `${p.name}: empty answer`);
           continue;
         }
         return { text, provider: p.name };
       } catch (err) {
-        errors.push(`${p.name}: ${(err as Error).message}`);
+        this.fail(errors, `${p.name}: ${(err as Error).message}`);
       }
     }
     this.log.error(`All LLM providers failed: ${errors.join(' | ')}`);
@@ -89,11 +94,11 @@ export class LlmService {
       try {
         res = await this.request(p, messages, maxTokens, true);
       } catch (err) {
-        errors.push(`${p.name}: ${(err as Error).message}`);
+        this.fail(errors, `${p.name}: ${(err as Error).message}`);
         continue;
       }
       if (!res.ok || !res.body) {
-        errors.push(`${p.name} ${res.status}: ${(await res.text().catch(() => '')).slice(0, 200)}`);
+        this.fail(errors, `${p.name} ${res.status}: ${(await res.text().catch(() => '')).slice(0, 200)}`);
         continue;
       }
 
@@ -127,10 +132,10 @@ export class LlmService {
           }
         }
         if (emitted) return p.name;
-        errors.push(`${p.name}: stream ended without content`);
+        this.fail(errors, `${p.name}: stream ended without content`);
       } catch (err) {
         if (emitted) throw err;
-        errors.push(`${p.name}: ${(err as Error).message}`);
+        this.fail(errors, `${p.name}: ${(err as Error).message}`);
       }
     }
     this.log.error(`All LLM providers failed: ${errors.join(' | ')}`);

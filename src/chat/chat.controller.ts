@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
 import { clientIp } from '../common/client-ip';
 import { RateLimitService } from '../common/rate-limit.service';
 import { ChatMessageDto } from './chat.dto';
@@ -21,6 +21,7 @@ export class ChatController {
 
   /** POST /api/chat → { answer, sources, provider } */
   @Post()
+  @HttpCode(200)
   async ask(@Body() dto: ChatMessageDto, @Req() req: any) {
     await this.limiter.check(clientIp(req));
     return this.chat.chat(dto);

@@ -128,6 +128,26 @@ async function listKnowledgeFiles() {
   return out;
 }
 
+/** Atlas indexes new documents asynchronously; wait until a probe query returns the new batch. */
+async function waitForCatchUp(col, probeVector, batch) {
+  for (let i = 0; i < 24; i++) {
+    const hits = await col
+      .aggregate([
+        { $vectorSearch: { index: INDEX, path: 'embedding', queryVector: probeVector, numCandidates: 20, limit: 1 } },
+        { $project: { 'metadata.batch': 1 } },
+      ])
+      .toArray()
+      .catch(() => []);
+    if (hits[0]?.metadata?.batch === batch) {
+      console.log(`  index has caught up with the new batch${i ? ` after ${i * 5}s` : ''}`);
+      return;
+    }
+    process.stdout.write(`  waiting for the index to catch up (${i * 5}s)\r`);
+    await new Promise((r) => setTimeout(r, 5000));
+  }
+  console.warn('\n  the index has not caught up yet; queries may return nothing for a short while.');
+}
+
 async function main() {
   const files = await listKnowledgeFiles();
   if (files.length === 0) fail(`No knowledge files in ${KNOWLEDGE_DIR}`);
@@ -167,6 +187,7 @@ async function main() {
   console.log(`  inserted ${docs.length}, removed ${deletedCount} old entries`);
 
   await ensureIndex(col);
+  await waitForCatchUp(col, vectors[0], batch);
   await mongoose.disconnect();
   console.log('\n✓ Seed complete');
 }
