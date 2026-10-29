@@ -7,6 +7,7 @@ import { EmbeddingsModule } from './embeddings/embeddings.module';
 import { HealthController } from './health/health.controller';
 import { KnowledgeModule } from './knowledge/knowledge.module';
 import { LlmModule } from './llm/llm.module';
+import { SessionModule } from './session/session.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { LlmModule } from './llm/llm.module';
     CommonModule,
     EmbeddingsModule,
     LlmModule,
+    SessionModule,
     KnowledgeModule,
     ChatModule,
   ],

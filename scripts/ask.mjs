@@ -34,9 +34,18 @@ await mongoose.disconnect();
 console.log(`\nRetrieval for: "${question}"`);
 for (const h of hits) console.log(`  ${h.score.toFixed(3)}  ${h.category.padEnd(22)} ${h.metadata?.title ?? ''}`);
 
+// With Turnstile configured, mint a session first (works with Cloudflare's always-pass test keys or a real token in TURNSTILE_TEST_TOKEN).
+const headers = { 'Content-Type': 'application/json', ...(process.env.CHAT_API_KEY ? { 'x-chat-key': process.env.CHAT_API_KEY } : {}) };
+if (process.env.TURNSTILE_SECRET_KEY) {
+  const s = await fetch(`${API_URL}/api/session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: process.env.TURNSTILE_TEST_TOKEN ?? 'test-token' }) });
+  const sj = await s.json().catch(() => ({}));
+  if (!s.ok) { console.error('session:', s.status, sj.message ?? sj); process.exit(1); }
+  headers.Authorization = `Bearer ${sj.session}`;
+}
+
 const res = await fetch(`${API_URL}/api/chat`, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json', ...(process.env.CHAT_API_KEY ? { 'x-chat-key': process.env.CHAT_API_KEY } : {}) },
+  headers,
   body: JSON.stringify({ message: question }),
 });
 const body = await res.json().catch(() => ({}));

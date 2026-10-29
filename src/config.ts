@@ -23,8 +23,16 @@ export function getConfig() {
     ]),
     /** Empty means the knowledge endpoints are disabled. */
     adminToken: process.env.ADMIN_TOKEN || '',
-    /** Shared key the site sends as x-chat-key; empty leaves the chat routes open. */
+    /** Shared key the site sends as x-chat-key; used only when Turnstile is not configured. */
     chatKey: process.env.CHAT_API_KEY || '',
+    /** Cloudflare Turnstile: browser verification for the chat routes. Secret set = enforced. */
+    turnstile: {
+      siteKey: process.env.TURNSTILE_SITE_KEY || '',
+      secret: process.env.TURNSTILE_SECRET_KEY || '',
+    },
+    /** HMAC key for session tokens; falls back to the Turnstile secret. */
+    sessionSecret: process.env.SESSION_SECRET || '',
+    sessionTtlSeconds: num(process.env.SESSION_TTL_SECONDS, 1800),
     groq: {
       apiKey: process.env.GROQ_API_KEY || '',
       model: groqModel,

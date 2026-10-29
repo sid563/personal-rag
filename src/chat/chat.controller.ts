@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { ChatKeyGuard } from '../common/chat-key.guard';
+import { ChatAccessGuard } from '../common/chat-access.guard';
 import { clientIp } from '../common/client-ip';
 import { RateLimitService } from '../common/rate-limit.service';
 import { ChatMessageDto } from './chat.dto';
@@ -13,9 +13,9 @@ type HttpRes = {
   end(): void;
 };
 
-/** The key check runs before the rate limiter, so unauthenticated calls never touch the budget. */
+/** Access check (session or key) runs before the rate limiter, so rejected calls never touch the budget. */
 @Controller('chat')
-@UseGuards(ChatKeyGuard)
+@UseGuards(ChatAccessGuard)
 export class ChatController {
   constructor(
     private readonly chat: ChatService,
