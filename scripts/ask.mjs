@@ -36,7 +36,7 @@ for (const h of hits) console.log(`  ${h.score.toFixed(3)}  ${h.category.padEnd(
 
 const res = await fetch(`${API_URL}/api/chat`, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 'Content-Type': 'application/json', ...(process.env.CHAT_API_KEY ? { 'x-chat-key': process.env.CHAT_API_KEY } : {}) },
   body: JSON.stringify({ message: question }),
 });
 const body = await res.json().catch(() => ({}));

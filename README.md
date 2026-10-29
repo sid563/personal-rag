@@ -21,7 +21,7 @@ DELETE /api/knowledge/:id ┘
 3. The kept chunks go into a system prompt that allows answers only from them.
 4. Groq generates the answer (`openai/gpt-oss-120b`, low reasoning effort). If Groq fails or is out of quota, Cloudflare's Llama 3.3 70B answers instead, using the same token as the embeddings.
 
-Guard rails: CORS allow-list (`ALLOWED_ORIGINS`), message capped at 500 characters and six history turns, per-visitor limits per minute and per day plus a daily budget for everyone, all counted in a MongoDB TTL collection so every serverless instance shares them. 429 responses carry `Retry-After`.
+Guard rails: an optional shared key on the chat routes (`CHAT_API_KEY`, sent by the site as `x-chat-key`; it is visible in the site's bundle, so treat it as a deterrent), CORS allow-list (`ALLOWED_ORIGINS`), message capped at 500 characters and six history turns, per-visitor limits per minute and per day plus a daily budget for everyone, all counted in a MongoDB TTL collection so every serverless instance shares them. 429 responses carry `Retry-After`.
 
 ## Setup
 

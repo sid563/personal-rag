@@ -12,7 +12,7 @@ async function bootstrap() {
   app.enableCors({
     origin: config.allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'x-admin-token'],
+    allowedHeaders: ['Content-Type', 'x-admin-token', 'x-chat-key'],
     maxAge: 86_400,
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

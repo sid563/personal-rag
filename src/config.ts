@@ -23,6 +23,8 @@ export function getConfig() {
     ]),
     /** Empty means the knowledge endpoints are disabled. */
     adminToken: process.env.ADMIN_TOKEN || '',
+    /** Shared key the site sends as x-chat-key; empty leaves the chat routes open. */
+    chatKey: process.env.CHAT_API_KEY || '',
     groq: {
       apiKey: process.env.GROQ_API_KEY || '',
       model: groqModel,
