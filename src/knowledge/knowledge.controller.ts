@@ -1,11 +1,14 @@
 import {
   Controller, Get, Post, Put, Delete,
-  Body, Param, Query,
+  Body, Param, Query, UseGuards,
 } from '@nestjs/common';
+import { AdminGuard } from '../common/admin.guard';
 import { KnowledgeService } from './knowledge.service';
 import { CreateKnowledgeDto, UpdateKnowledgeDto } from './knowledge.dto';
 
+/** Admin only: every route needs the `x-admin-token` header (see AdminGuard). */
 @Controller('knowledge')
+@UseGuards(AdminGuard)
 export class KnowledgeController {
   constructor(private readonly service: KnowledgeService) {}
 

@@ -25,3 +25,6 @@ Thumbs.db
 
 # Stray brace-expansion artifact
 {src/
+
+# Knowledge chunks that stay out of the public repo (still seeded)
+knowledge/private/

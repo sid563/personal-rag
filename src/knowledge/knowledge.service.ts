@@ -5,6 +5,15 @@ import { Knowledge, KnowledgeDocument } from './knowledge.schema';
 import { CreateKnowledgeDto, UpdateKnowledgeDto } from './knowledge.dto';
 import { EmbeddingsService } from '../embeddings/embeddings.service';
 
+export type SearchHit = {
+  _id: unknown;
+  category: string;
+  content: string;
+  metadata: Record<string, any>;
+  /** Atlas vectorSearchScore: (1 + cosine) / 2, so 0.5 is unrelated and 1 is identical. */
+  score: number;
+};
+
 @Injectable()
 export class KnowledgeService {
   constructor(
@@ -66,16 +75,15 @@ export class KnowledgeService {
     return this.model.find(filter).select('-embedding').sort({ createdAt: -1 });
   }
 
-  // Vector similarity search — finds top K relevant chunks for a query
-  async vectorSearch(queryEmbedding: number[], topK = 5): Promise<KnowledgeDocument[]> {
-    // Uses MongoDB Atlas $vectorSearch aggregation
-    const results = await this.model.aggregate([
+  // Vector similarity search: top K chunks for a query vector, with scores.
+  async vectorSearch(queryEmbedding: number[], topK = 6): Promise<SearchHit[]> {
+    return this.model.aggregate<SearchHit>([
       {
         $vectorSearch: {
           index: 'vector_index',
           path: 'embedding',
           queryVector: queryEmbedding,
-          numCandidates: topK * 10, // search wider, return topK
+          numCandidates: Math.max(topK * 10, 60),
           limit: topK,
         },
       },
@@ -88,6 +96,5 @@ export class KnowledgeService {
         },
       },
     ]);
-    return results;
   }
 }

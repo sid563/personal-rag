@@ -1,209 +1,58 @@
-# Personal RAG Chatbot API
+# Personal RAG chatbot API
 
-A NestJS backend that answers questions about you using RAG —
-Retrieval-Augmented Generation with MongoDB Atlas Vector Search + Groq (Llama 3).
-
-## Architecture
+The assistant behind the chat button on [sidharthsingh.dev](https://sidharthsingh.dev). A NestJS service that answers questions about Sidharth from a curated knowledge base: retrieval-augmented generation over MongoDB Atlas Vector Search, embeddings from Cloudflare Workers AI, answers from Groq with Cloudflare as the fallback.
 
 ```
-POST /api/chat
-  → embed question (HuggingFace BGE model, free)
-  → vector search MongoDB Atlas (top 5 relevant chunks)
-  → build prompt with retrieved context
-  → Groq Llama 3.3 70B generates answer
-  → return { answer, sources }
+POST /api/chat            → { answer, sources, provider }
+POST /api/chat/stream     → server-sent events: {type:"sources"} · {type:"token"}… · {type:"done"} | {type:"error"}
+GET  /api/health          → { ok: true }
 
-POST /api/knowledge       → add one entry (auto-embeds)
-POST /api/knowledge/bulk  → seed multiple entries
-GET  /api/knowledge       → list all entries
-PUT  /api/knowledge/:id   → update entry (re-embeds if content changed)
-DELETE /api/knowledge/:id → remove entry
+POST /api/knowledge       ┐
+POST /api/knowledge/bulk  │ admin only: header x-admin-token (disabled when ADMIN_TOKEN is unset)
+GET  /api/knowledge       │
+PUT  /api/knowledge/:id   │
+DELETE /api/knowledge/:id ┘
 ```
 
----
+## How a question is answered
 
-## Step 1 — Get Free API Keys
+1. The question is embedded with `@cf/baai/bge-small-en-v1.5` (384 dimensions) on Cloudflare Workers AI.
+2. Atlas `$vectorSearch` returns the top 6 chunks; only chunks scoring at least `RAG_MIN_SCORE` are kept. If none pass, the API answers "I don't have that" without calling an LLM.
+3. The kept chunks go into a system prompt that allows answers only from them.
+4. Groq generates the answer (`openai/gpt-oss-120b`, low reasoning effort). If Groq fails or is out of quota, Cloudflare's Llama 3.3 70B answers instead, using the same token as the embeddings.
 
-### Groq (LLM — Llama 3.3 70B)
-1. Go to https://console.groq.com
-2. Sign up → API Keys → Create Key
-3. Copy key → `GROQ_API_KEY`
+Guard rails: CORS allow-list (`ALLOWED_ORIGINS`), message capped at 500 characters and six history turns, per-visitor limits per minute and per day plus a daily budget for everyone, all counted in a MongoDB TTL collection so every serverless instance shares them. 429 responses carry `Retry-After`.
 
-### HuggingFace (Embeddings — BGE small)
-1. Go to https://huggingface.co
-2. Sign up → Settings → Access Tokens → New token (read)
-3. Copy key → `HF_API_KEY`
+## Setup
 
-### MongoDB Atlas (Vector DB)
-1. Go to https://cloud.mongodb.com
-2. Create free M0 cluster
-3. Get connection string → `MONGODB_URI`
+Keys, all free tiers:
 
----
+- **MongoDB Atlas** (M0): connection string → `MONGODB_URI`, database `personal-rag`.
+- **Groq**: console.groq.com → API Keys → `GROQ_API_KEY`.
+- **Cloudflare Workers AI**: Account ID from any domain's Overview page → `CF_ACCOUNT_ID`; My Profile → API Tokens → Create Custom Token with permission *Workers AI: Read* → `CF_API_TOKEN`.
 
-## Step 2 — Create Vector Search Index in Atlas
+```bash
+cp .env.example .env     # fill the three keys above
+npm install
+npm run seed             # embeds knowledge/*.md and rebuilds the collection (creates the vector index if it can)
+npm run start:dev        # http://localhost:3000/api/health
+npm run ask -- "What does Sidharth do at 1buy.ai?"   # prints retrieval scores, then the API's answer
+```
 
-After creating your cluster:
-
-1. Go to Atlas UI → Your Cluster → Search → Create Search Index
-2. Choose **Atlas Vector Search** (not regular search)
-3. Select your database: `personal-rag`, collection: `knowledges`
-4. Use this JSON config:
+If the seed cannot create the vector index itself, create it in Atlas: cluster → Search → Create Search Index → Atlas Vector Search → collection `knowledges`, name `vector_index`:
 
 ```json
-{
-  "fields": [
-    {
-      "type": "vector",
-      "path": "embedding",
-      "numDimensions": 384,
-      "similarity": "cosine"
-    },
-    {
-      "type": "filter",
-      "path": "category"
-    }
-  ]
-}
+{ "fields": [
+  { "type": "vector", "path": "embedding", "numDimensions": 384, "similarity": "cosine" },
+  { "type": "filter", "path": "category" } ] }
 ```
 
-5. Name the index: `vector_index`
-6. Save — takes ~1 minute to build
+## Knowledge base
 
----
+`knowledge/*.md`, one file per category. Every `## Heading` is one chunk (heading plus the text under it), self-contained, 60 to 180 words. A chunk whose body starts with `TODO` is skipped, so unanswered questions can stay in the file. Edit, then `npm run seed`; the seed replaces the whole collection in one pass (new batch inserted first, previous batch removed after).
 
-## Step 3 — Local Setup
+## Deploy on Vercel
 
-```bash
-# Clone and install
-npm install
+Zero configuration: Vercel detects NestJS from `src/main.ts`, builds it into one Function on Fluid compute, and streams responses. Import the repository at vercel.com/new (or `vercel --prod`), add the `.env` values as environment variables, and point a subdomain at it. Node 20 or newer.
 
-# Copy env file
-cp .env.example .env
-# Fill in MONGODB_URI, GROQ_API_KEY, HF_API_KEY, OWNER_NAME
-
-# Run dev
-npm run start:dev
-```
-
----
-
-## Step 4 — Seed Your Personal Data
-
-Edit `seed.json` with your actual info, then:
-
-```bash
-curl -X POST http://localhost:3000/api/knowledge/bulk \
-  -H "Content-Type: application/json" \
-  -d @seed.json
-```
-
----
-
-## Step 5 — Test the Chat
-
-```bash
-curl -X POST http://localhost:3000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "What are Sidharth skills?"}'
-
-# With conversation history (multi-turn)
-curl -X POST http://localhost:3000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "Tell me more about his Rust experience",
-    "history": [
-      {"role": "user", "content": "What does Sidharth do?"},
-      {"role": "assistant", "content": "Sidharth is a Full Stack Engineer..."}
-    ]
-  }'
-```
-
----
-
-## Step 6 — Manage Knowledge
-
-```bash
-# Add one entry
-curl -X POST http://localhost:3000/api/knowledge \
-  -H "Content-Type: application/json" \
-  -d '{
-    "category": "hobbies",
-    "content": "Sidharth enjoys exploring distributed systems and learning Go in his free time.",
-    "metadata": {"tags": ["hobbies"]}
-  }'
-
-# List all entries
-curl http://localhost:3000/api/knowledge
-
-# List by category
-curl http://localhost:3000/api/knowledge?category=skills
-
-# Update an entry
-curl -X PUT http://localhost:3000/api/knowledge/<id> \
-  -H "Content-Type: application/json" \
-  -d '{"content": "Updated content here — embedding auto-regenerates"}'
-
-# Delete an entry
-curl -X DELETE http://localhost:3000/api/knowledge/<id>
-```
-
----
-
-## Step 7 — Deploy on AWS EC2
-
-```bash
-# 1. Launch EC2 — t2.micro (free tier) or t3.small (~$15/mo)
-#    AMI: Ubuntu 22.04, open port 3000 in security group
-
-# 2. SSH in and install Docker
-sudo apt update && sudo apt install -y docker.io
-sudo systemctl start docker
-
-# 3. Build and run
-git clone <your-repo>
-cd personal-rag
-cp .env.example .env   # fill in your keys
-
-docker build -t personal-rag .
-docker run -d \
-  --env-file .env \
-  -p 3000:3000 \
-  --restart unless-stopped \
-  --name personal-rag \
-  personal-rag
-
-# 4. Optional: Nginx reverse proxy + SSL with Certbot
-sudo apt install -y nginx certbot python3-certbot-nginx
-# Point your domain to EC2 IP, then:
-sudo certbot --nginx -d yourdomain.com
-```
-
----
-
-## Categories (suggested)
-
-Use consistent categories so you can filter:
-- `personal` — basic info, location, education
-- `experience` — work history
-- `skills` — tech skills
-- `projects` — side projects
-- `achievements` — awards, certifications
-- `personality` — interests, working style, goals
-
----
-
-## Integrating with your Profile Website
-
-```javascript
-// In your profile website frontend
-const response = await fetch('https://your-ec2-domain.com/api/chat', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    message: userQuestion,
-    history: conversationHistory  // keep last 6 messages
-  })
-});
-const { answer, sources } = await response.json();
-```
+The `Dockerfile` still builds a standalone container for any host that runs one.

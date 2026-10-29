@@ -1,44 +1,39 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import axios from 'axios';
+import { getConfig } from '../config';
 
+/**
+ * Cloudflare Workers AI, model BAAI/bge-small-en-v1.5 (384 dimensions).
+ * Up to 100 texts per call; chunks stay under the model's 512-token input.
+ */
 @Injectable()
 export class EmbeddingsService {
-  // Using HuggingFace Inference API — free tier
-  // Model: BAAI/bge-small-en-v1.5 (384 dim, fast, accurate, free)
-  private readonly HF_URL =
-    'https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5/pipeline/feature-extraction';
-
   async embed(text: string): Promise<number[]> {
-    try {
-      const response = await axios.post(
-        this.HF_URL,
-        { inputs: text, options: { wait_for_model: true } },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.HF_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-        },
-      );
-
-      // HF returns nested array for some models — flatten if needed
-      const data = response.data;
-      const vector = Array.isArray(data[0]) ? data[0] : data;
-
-      if (!Array.isArray(vector) || vector.length === 0) {
-        throw new Error('Invalid embedding response from HuggingFace');
-      }
-
-      return vector as number[];
-    } catch (err) {
-      throw new InternalServerErrorException(
-        `Embedding generation failed: ${err.message}`,
-      );
-    }
+    const [vector] = await this.embedBatch([text]);
+    return vector;
   }
 
-  // Embed multiple texts — used for batch operations
   async embedBatch(texts: string[]): Promise<number[][]> {
-    return Promise.all(texts.map((t) => this.embed(t)));
+    const cf = getConfig().cloudflare;
+    if (!cf.accountId || !cf.apiToken) {
+      throw new InternalServerErrorException('Embeddings are not configured: set CF_ACCOUNT_ID and CF_API_TOKEN.');
+    }
+    const url = `https://api.cloudflare.com/client/v4/accounts/${cf.accountId}/ai/run/${cf.embeddingModel}`;
+    const out: number[][] = [];
+    for (let i = 0; i < texts.length; i += 100) {
+      const batch = texts.slice(i, i + 100);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${cf.apiToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: batch }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      const json: any = await res.json().catch(() => null);
+      if (!res.ok || !json?.success || !Array.isArray(json?.result?.data)) {
+        const detail = JSON.stringify(json?.errors ?? json?.messages ?? '').slice(0, 300);
+        throw new InternalServerErrorException(`Embedding call failed (${res.status}) ${detail}`);
+      }
+      out.push(...(json.result.data as number[][]));
+    }
+    return out;
   }
 }
